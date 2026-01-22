@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雪糕娱乐室</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+
+        .username {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            font-size: 14px;
+            color: #6c63ff;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .room-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 25px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px; /* 新增：和房间列表分隔 */
+        }
+
+        .title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .create-btn {
+            padding: 13px;
+            background-color: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .create-btn:hover {
+            background-color: #5a54e0;
+        }
+
+        .join-group {
+            margin-top: 20px;
+        }
+
+        .join-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            margin-bottom: 12px;
+        }
+
+        .join-group input:focus {
+            border-color: #6c63ff;
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1);
+        }
+
+        .join-btn {
+            width: 100%;
+            padding: 13px;
+            background-color: #2f3542;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .join-btn:hover {
+            background-color: #1e232c;
+        }
+
+        .tip {
+            color: #999;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .error-tip {
+            color: #ff4757;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* 新增：房间列表样式（和现有风格统一） */
+        .room-list-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 25px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .room-list-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .room-list {
+            max-height: 300px; /* 限制高度，超出滚动 */
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* 滚动条美化（可选） */
+        .room-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .room-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .room-list::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        .room-list::-webkit-scrollbar-thumb:hover {
+            background: #ccc;
+        }
+
+        .room-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border: 1px solid #f0f0f0;
+            border-radius: 10px;
+            background-color: #fafafa;
+            transition: all 0.2s;
+        }
+
+        .room-item:hover {
+            border-color: #6c63ff;
+            background-color: #f5f4ff;
+        }
+
+        .room-id-text {
+            font-size: 15px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .room-status-text {
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 10px; /* 与房间号分隔 */
+            flex: 1; /* 占满中间空间，保证按钮右对齐 */
+            text-align: right; /* 文字右对齐，和按钮保持间距 */
+            padding-right: 12px; /* 新增：拉开与右侧按钮的空隙，数值可按需调整 */
+        }
+
+        /* 不同状态颜色（非纯红/纯绿，更友好） */
+        .status-positive {
+            color: #e74c3c; /* 浅红（珊瑚红） */
+        }
+
+        .status-negative {
+            color: #27ae60; /* 浅绿（草绿） */
+        }
+
+        .status-zero {
+            color: #333; /* 黑色（和房间号一致） */
+        }
+
+        .join-room-item-btn {
+            padding: 6px 12px;
+            background-color: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .join-room-item-btn:hover {
+            background-color: #5a54e0;
+        }
+
+        .empty-room-tip {
+            color: #999;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+<div class="header">
+    <div class="username" id="username">用户名</div>
+    <button class="logout-btn" id="logoutBtn">退出登录</button>
+</div>
+
+<div class="room-container">
+    <div class="title">雪糕娱乐室</div>
+    <div class="btn-group">
+        <button class="create-btn" id="createRoomBtn">创建新房间</button>
+    </div>
+    <div class="join-group">
+        <input type="text" id="roomIdInput" placeholder="请输入房间号">
+        <button class="join-btn" id="joinRoomBtn">加入房间</button>
+        <div class="error-tip" id="errorTip">房间号不存在或已关闭</div>
+    </div>
+</div>
+
+<!-- 新增：房间列表区域 -->
+<div class="room-list-container">
+    <div class="room-list-title">我的房间历史</div>
+    <div class="room-list" id="roomList">
+        <!-- 房间项由JS动态渲染 -->
+        <div class="empty-room-tip">暂无可用房间</div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
+<script>
+    // 获取元素
+    const usernameEl = document.getElementById('username');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    const roomIdInput = document.getElementById('roomIdInput');
+    const joinRoomBtn = document.getElementById('joinRoomBtn');
+    const errorTip = document.getElementById('errorTip');
+    const roomListEl = document.getElementById('roomList'); // 新增：房间列表容器
+
+    const username = getUserFromCookie();
+    if (!username) {
+        gotoLogin();
+    }
+
+    usernameEl.textContent = `当前用户：${username}`;
+
+    logoutBtn.addEventListener('click', () => {
+        clearAllCookies();
+        gotoLogin();
+    });
+
+    createRoomBtn.addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/room/create', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const data = await res.json();
+            checkLoginOrGotoLoginPage(data);
+            const roomId = data.roomId;
+            gotoRoom(roomId);
+        } catch (err) {
+            errorTip.textContent = '网络错误，请重试';
+            errorTip.style.display = 'block';
+            console.error('创建房间失败：', err);
+        }
+    });
+
+    joinRoomBtn.addEventListener('click', async () => {
+        const roomId = roomIdInput.value.trim();
+        if (!roomId) {
+            errorTip.textContent = '请输入房间号';
+            errorTip.style.display = 'block';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/room/join', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({roomId})
+            });
+
+            const data = await res.json();
+            checkLoginOrGotoLoginPage(data);
+
+            if (data.success) {
+                errorTip.style.display = 'none';
+                gotoRoom(data.roomId);
+            } else {
+                errorTip.textContent = data.msg;
+                errorTip.style.display = 'block';
+            }
+        } catch (err) {
+            errorTip.textContent = '网络错误，请重试';
+            errorTip.style.display = 'block';
+            console.error('加入房间失败：', err);
+        }
+    });
+
+    let roomList = [];
+
+    function renderRoomList() {
+        roomListEl.innerHTML = '';
+
+        if (roomList.length === 0) {
+            roomListEl.innerHTML = '<div class="empty-room-tip">暂无历史房间</div>';
+            return;
+        }
+
+        roomList.forEach(item => {
+            const roomItem = document.createElement('div');
+            roomItem.className = 'room-item';
+
+            // ---------- 核心修改：新增 status 展示逻辑 ----------
+            // 1. 确定 status 样式类
+            let statusClass = 'status-zero';
+            if (item.status.startsWith('+')) {
+                statusClass = 'status-positive';
+            } else if (item.status.startsWith('-')) {
+                statusClass = 'status-negative';
+            }
+            // 2. 拼接 HTML，新增 status 节点
+            roomItem.innerHTML = `
+            <span class="room-id-text">房间号：${item.roomId}</span>
+            <span class="room-status-text ${statusClass}">${item.status}</span>
+            <button class="join-room-item-btn" data-room-id="${item.roomId}">进入</button>
+        `;
+            // ---------- 修改结束 ----------
+
+            roomListEl.appendChild(roomItem);
+
+            // 绑定加入按钮事件
+            const joinBtn = roomItem.querySelector('.join-room-item-btn');
+            joinBtn.addEventListener('click', () => {
+                const roomId = joinBtn.dataset.roomId;
+                gotoRoom(roomId)
+            });
+        });
+    }
+
+    async function fetchRoomList() {
+        try {
+            const res = await fetch('/api/room/list', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const data = await res.json();
+            checkLoginOrGotoLoginPage(data);
+            roomList = data.rooms ? data.rooms : []
+            renderRoomList();
+        } catch (err) {
+            console.error('获取房间列表失败：', err);
+            roomListEl.innerHTML = '<div class="empty-room-tip">${err}</div>';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        fetchRoomList();
+    });
+</script>
+</body>
+</html>

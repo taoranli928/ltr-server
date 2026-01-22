@@ -4,6 +4,8 @@ Flask==3.1.2
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
+peewee==3.19.0
+PyJWT==2.10.1
 setuptools==60.2.0
 Werkzeug==3.1.5
 wheel==0.37.1

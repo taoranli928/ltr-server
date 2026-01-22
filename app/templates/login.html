@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雪糕娱乐室</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 30px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-top: 30vh;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: #6c63ff;
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 13px;
+            background-color: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            background-color: #5a54e0;
+        }
+
+        .error-tip {
+            color: #ff4757;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* toast 核心样式：居中 + 丝滑过渡 */
+        #loginToast {
+            /* 初始隐藏状态 */
+            display: none;
+            opacity: 0;
+            /* 关键：统一过渡属性（透明度+transform，避免卡顿） */
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            /* 屏幕正中间定位 */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95); /* 轻微缩放，增强动画感 */
+            /* 美化样式 */
+            padding: 16px 32px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            font-size: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            pointer-events: none; /* 不遮挡点击 */
+        }
+
+        /* 显示时的样式（配合JS） */
+        #loginToast.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1); /* 缩放回原大小，增强渐显感 */
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <div class="title">雪糕娱乐室</div>
+    <div class="input-group">
+        <label for="username">用户名</label>
+        <input type="text" id="username" placeholder="请输入用户名" autocomplete="off">
+    </div>
+    <div class="input-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" placeholder="请输入密码">
+    </div>
+    <button class="login-btn" id="loginBtn">登录</button>
+    <div class="error-tip" id="errorTip">用户名或密码错误</div>
+</div>
+
+<div class="login-toast" id="loginToast"></div>
+
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
+<script>
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorTip = document.getElementById('errorTip');
+    const loginToast = document.getElementById('loginToast');
+
+    function showLoginResultToastAndDirect(msg) {
+        loginToast.textContent = msg;
+
+        showToastAndFadeout(loginToast)
+
+        setTimeout(() => {
+            gotoLobby();
+        }, 1500);
+    }
+
+    async function checkAutoLogin() {
+        if (!document.cookie || document.cookie.trim() === '') {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/login/check', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const data = await res.json();
+            checkLoginOrGotoLoginPage(data);
+            showLoginResultToastAndDirect(`欢迎回来，${data.username}～`);
+        } catch (err) {
+            console.log("err:" + err)
+        }
+    }
+
+    function setCookieFromResponse(res) {
+        const setCookieHeader = res.headers.get('Set-Cookie');
+        if (setCookieHeader) {
+            const cookies = setCookieHeader.split(';');
+            cookies.forEach(cookie => {
+                if (cookie.trim()) {
+                    document.cookie = cookie.trim();
+                }
+            });
+            console.log('Cookie saved：', document.cookie);
+        }
+    }
+
+    loginBtn.addEventListener('click', async () => {
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        if (!username || !password) {
+            errorTip.textContent = '请输入用户名和密码';
+            errorTip.style.display = 'block';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({username, password})
+            });
+
+            setCookieFromResponse(res);
+
+            const data = await res.json();
+            if (data.success) {
+                showLoginResultToastAndDirect(`登录成功~`);
+            } else {
+                errorTip.textContent = data.msg || '登录失败';
+                errorTip.style.display = 'block';
+            }
+        } catch (err) {
+            errorTip.textContent = '网络错误';
+            errorTip.style.display = 'block';
+        }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        checkAutoLogin();
+    });
+</script>
+</body>
+</html>

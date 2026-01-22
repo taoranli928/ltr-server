@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- Safari 核心适配：禁止缩放+安全区+禁用自动调整 -->
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light only">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="white">
+    <meta name="format-detection" content="telephone=no"> <!-- 禁止Safari识别手机号 -->
+    <title>房间</title>
+    <style>
+        /* === 全局重置 & Safari 兼容 === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* 禁用Safari点击高亮 */
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            tap-highlight-color: rgba(0, 0, 0, 0);
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            background-color: #fafafa;
+            /* Safari 滚动优化：禁用弹性滚动 */
+            overflow: hidden;
+            touch-action: manipulation; /* 禁用双击缩放 */
+        }
+
+        /* === 页面容器 === */
+        .page-container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        /* === 顶部导航栏 (Safari 固定+毛玻璃) === */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px); /* Safari 毛玻璃 */
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            margin-bottom: 12px;
+        }
+
+        .navbar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111;
+        }
+
+        .leave-btn {
+            font-size: 15px;
+            color: #ff3b30;
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .leave-btn:active {
+            background-color: rgba(255, 59, 48, 0.1);
+        }
+
+        /* === 成员列表区域 (Safari 滚动优化) === */
+        .content-wrap {
+            flex: 1;
+            overflow-y: auto;
+            /* Safari 弹性滚动 + 滚动条隐藏 */
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* 隐藏Firefox滚动条 */
+        }
+
+        .content-wrap::-webkit-scrollbar {
+            display: none; /* 隐藏Safari滚动条 */
+        }
+
+        .member-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 0 12px 12px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 新增：卡片头部布局（标题+结算按钮） */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 15px;
+            color: #8e8e93;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .card-header-title {
+            color: #8e8e93;
+            font-size: 15px;
+        }
+
+        /* 新增：查看结算按钮样式 */
+        .check-settlement-btn {
+            font-size: 14px;
+            color: #6c63ff;
+            background: none;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .check-settlement-btn:active {
+            background-color: rgba(108, 99, 255, 0.1);
+        }
+
+        /* 关键修复1：给成员列表父容器添加间距控制（优先级更高） */
+        #memberList {
+            display: flex;
+            flex-direction: column;
+            gap: 16px; /* 成员项之间的间距（核心！） */
+        }
+
+        /* === 成员项 (卡片式设计) === */
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 12px;
+            border-radius: 16px;
+            /* 关键修复2：移除过大的margin-bottom，改用父容器gap控制 */
+            margin-bottom: 0 !important; /* !important 确保覆盖其他样式 */
+        }
+
+        .member-item.self {
+            background: linear-gradient(135deg, #f0f8ff 0%, #e8f4f8 100%);
+            border: 1px solid #e3f2fd;
+        }
+
+        .member-item.other {
+            background: #fafafa;
+            transition: all 0.2s;
+        }
+
+        .member-item.other:active {
+            background: #f5f5f5;
+            transform: scale(0.98); /* Safari 触控反馈 */
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #6c63ff;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-name {
+            font-size: 16px;
+            color: #111;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .member-tag {
+            font-size: 11px;
+            color: #8e8e93;
+        }
+
+        .score-wrap {
+            text-align: right;
+        }
+
+        .score-label {
+            font-size: 11px;
+            color: #8e8e93;
+            margin-bottom: 2px;
+        }
+
+        .score-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .score-positive {
+            color: #ff3b30;
+        }
+
+        .score-negative {
+            color: #34c759;
+        }
+
+        /* === 弹窗通用样式 (Safari 键盘适配) === */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: flex-end; /* 从底部弹出，适配Safari键盘 */
+            justify-content: center;
+            z-index: 999;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            width: 100%;
+            background: #fff;
+            border-radius: 24px 24px 0 0;
+            padding: 24px 20px env(safe-area-inset-bottom) 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 4px;
+        }
+
+        .modal-subtitle {
+            font-size: 14px;
+            color: #8e8e93;
+        }
+
+        /* === 分数输入框 (禁用上下按键) === */
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-label {
+            font-size: 15px;
+            color: #111;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .score-input {
+            width: 100%;
+            padding: 20px 16px;
+            font-size: 24px;
+            font-weight: 600;
+            border: 1px solid #e5e5e5;
+            border-radius: 16px;
+            background: #fafafa;
+            text-align: center;
+            /* 禁用Safari默认样式 */
+            -webkit-appearance: none;
+            appearance: none;
+            /* 隐藏上下箭头 */
+        }
+
+        /* 核心：禁用输入框上下箭头 & 按键 */
+        .score-input::-webkit-outer-spin-button,
+        .score-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .score-input[type=number] {
+            -moz-appearance: textfield; /* Firefox */
+        }
+
+        .error-tip {
+            font-size: 13px;
+            color: #ff3b30;
+            text-align: center;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* === 按钮组 === */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            transition: all 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .btn-cancel {
+            background: #f5f5f5;
+            color: #8e8e93;
+        }
+
+        .btn-cancel:active {
+            background: #e5e5e5;
+        }
+
+        .btn-confirm {
+            background: #6c63ff;
+            color: #fff;
+        }
+
+        .btn-confirm:active {
+            background: #5a54e0;
+        }
+
+        /* === 加载提示 === */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            z-index: 1000;
+            display: none;
+        }
+
+        /* === 新增：结算列表样式 === */
+        .settlement-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .settlement-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 16px;
+        }
+
+        .settlement-user-group {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .settlement-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #6c63ff;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .settlement-arrow {
+            font-size: 16px;
+            color: #8e8e93;
+            margin: 0 12px;
+        }
+
+        .settlement-score {
+            font-size: 18px;
+            font-weight: 600;
+            color: #6c63ff;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .empty-settlement {
+            text-align: center;
+            padding: 40px 0;
+            color: #8e8e93;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="page-container">
+    <!-- 顶部导航 -->
+    <div class="navbar">
+        <div class="navbar-title" id="roomTitle">房间 #100001</div>
+        <button class="leave-btn" id="leaveBtn">返回大厅</button>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content-wrap">
+        <div class="member-card">
+            <!-- 修改：卡片头部增加结算按钮 -->
+            <div class="card-header">
+                <div class="card-header-title">房间成员</div>
+                <button class="check-settlement-btn" id="checkSettlementBtn">查看房间结算</button>
+            </div>
+            <div id="memberList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 分数输入弹窗 -->
+<div class="modal-overlay" id="scoreModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTargetName">从 测试用户 处获取</div>
+        </div>
+        <div class="input-group">
+            <label class="input-label" for="scoreInput">输入金额</label>
+            <input type="number" class="score-input" id="scoreInput" inputmode="numeric" pattern="[0-9]*">
+            <div class="error-tip" id="errorTip">请输入有效的金额</div>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-cancel" id="cancelBtn">取消</button>
+            <button class="btn btn-confirm" id="confirmBtn">确认</button>
+        </div>
+    </div>
+</div>
+
+<!-- 新增：房间结算弹窗 -->
+<div class="modal-overlay" id="settlementModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">房间结算</div>
+            <div class="modal-subtitle" id="settlementRoomId">房间 #100001</div>
+        </div>
+        <!-- 结算列表容器 -->
+        <div id="settlementList" class="settlement-list"></div>
+        <!-- 关闭按钮 -->
+        <div class="btn-group">
+            <button class="btn btn-cancel" id="settlementCancelBtn">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 加载提示 -->
+<div class="loading" id="loadingToast">加载中...</div>
+
+<script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
+<script>
+    // === 核心变量 ===
+    const roomTitleEl = document.getElementById('roomTitle');
+    const memberListEl = document.getElementById('memberList');
+    const scoreModal = document.getElementById('scoreModal');
+    const modalTargetName = document.getElementById('modalTargetName');
+    const scoreInput = document.getElementById('scoreInput');
+    const errorTip = document.getElementById('errorTip');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const leaveBtn = document.getElementById('leaveBtn');
+
+    // 新增：结算相关变量
+    const checkSettlementBtn = document.getElementById('checkSettlementBtn');
+    const settlementModal = document.getElementById('settlementModal');
+    const settlementRoomId = document.getElementById('settlementRoomId');
+    const settlementList = document.getElementById('settlementList');
+    const settlementCancelBtn = document.getElementById('settlementCancelBtn');
+
+    let roomId;
+    let currentUsername;
+    let targetUserName = '';
+    let roomDetail = [];
+    let roomSummary = [];
+
+    // 打开分数弹窗
+    function openModal(targetName) {
+        targetUserName = targetName;
+        modalTargetName.textContent = `从 【${targetName}】收钱～ `;
+        scoreInput.value = '';
+        errorTip.style.display = 'none';
+        scoreModal.classList.add('show');
+
+        // Safari 聚焦修复：延迟聚焦避免键盘异常
+        setTimeout(() => {
+            scoreInput.focus();
+            // 强制弹出数字键盘
+            scoreInput.setAttribute('type', 'tel');
+            setTimeout(() => {
+                scoreInput.setAttribute('type', 'number');
+            }, 100);
+        }, 300);
+    }
+
+    // 关闭分数弹窗
+    function closeModal() {
+        scoreModal.classList.remove('show');
+        scoreInput.blur();
+        // Safari 键盘收起后重置滚动
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 100);
+    }
+
+    // 新增：打开结算弹窗
+    function openSettlementModal() {
+        settlementRoomId.textContent = `${roomId}`;
+        renderSettlementList(); // 渲染结算列表
+        settlementModal.classList.add('show');
+    }
+
+    // 新增：关闭结算弹窗
+    function closeSettlementModal() {
+        settlementModal.classList.remove('show');
+        // Safari 滚动重置
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 100);
+    }
+
+    // === 核心业务逻辑 ===
+    async function initPage() {
+        currentUsername = getUserFromCookie()
+        if (!currentUsername) {
+            gotoLogin();
+        }
+
+        // 获取房间ID
+        const urlParams = new URLSearchParams(window.location.search);
+        roomId = urlParams.get('roomId');
+        if (!roomId) {
+            gotoLobby();
+        }
+        roomTitleEl.textContent = `房间 ${roomId}`;
+
+        // 加载成员列表（包含结算数据）
+        await loadRoomMembers();
+        setInterval(loadRoomMembers, 10000);
+
+        // 分数弹窗事件
+        cancelBtn.addEventListener('click', closeModal);
+        confirmBtn.addEventListener('click', confirmScore);
+        scoreModal.addEventListener('click', (e) => {
+            if (e.target === scoreModal) closeModal();
+        });
+
+        // 新增：结算弹窗事件
+        checkSettlementBtn.addEventListener('click', openSettlementModal);
+        settlementCancelBtn.addEventListener('click', closeSettlementModal);
+        settlementModal.addEventListener('click', (e) => {
+            if (e.target === settlementModal) closeSettlementModal();
+        });
+
+        // === Safari 关键优化：禁用输入框上下按键 ===
+        scoreInput.addEventListener('keydown', (e) => {
+            // 禁用上下箭头键
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+            }
+            // 禁用加减号
+            if (e.key === '+' || e.key === '-') {
+                e.preventDefault();
+            }
+        });
+
+        // Safari 输入框内容过滤（只保留数字）
+        scoreInput.addEventListener('input', () => {
+            scoreInput.value = scoreInput.value.replace(/[^0-9]/g, '');
+            errorTip.style.display = 'none';
+        });
+
+        leaveBtn.addEventListener('click', () => {
+            gotoLobby();
+        });
+
+        // Safari 键盘收起监听
+        window.addEventListener('resize', () => {
+            if (!scoreModal.classList.contains('show') && !settlementModal.classList.contains('show')) {
+                document.body.scrollTop = 0;
+            }
+        });
+    }
+
+    async function loadRoomMembers() {
+        try {
+            const res = await fetch('/api/room/detail', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({roomId})
+            });
+            const data = await res.json();
+            roomDetail = data.detail || [];
+            roomSummary = data.roomSummary || [];
+
+            renderMemberList();
+        } catch (err) {
+            console.error('加载成员失败:', err);
+        }
+    }
+
+    function renderMemberList() {
+        memberListEl.innerHTML = '';
+
+        const selfMember = roomDetail.find(m => m.username === currentUsername);
+        const otherMembers = roomDetail.filter(m => m.username !== currentUsername);
+
+        if (selfMember) {
+            const selfItem = document.createElement('div');
+            selfItem.innerHTML = renderMemberItem(selfMember, true);
+            memberListEl.appendChild(selfItem);
+        }
+
+        otherMembers.forEach(member => {
+            const memberItemHtml = renderMemberItem(member, false);
+            // 创建DOM元素并直接添加到列表
+            const memberItem = document.createElement('div');
+            memberItem.innerHTML = memberItemHtml;
+            // 找到.other类的元素并绑定点击事件
+            const otherItem = memberItem.querySelector('.member-item.other');
+            if (otherItem) {
+                otherItem.addEventListener('click', () => {
+                    console.log('点击用户：', member.username); // 调试用，可删除
+                    openModal(member.username);
+                });
+            }
+            memberListEl.appendChild(memberItem);
+        });
+    }
+
+    // 渲染单个成员项
+    function renderMemberItem(member, isSelf) {
+        const avatarText = member.username.substring(0, 1);
+        const scoreClass = member.score >= 0 ? 'score-positive' : 'score-negative';
+        const scoreText = member.score >= 0 ? `${member.score}` : member.score;
+
+        return `
+                <div class="member-item ${isSelf ? 'self' : 'other'}">
+                    <div class="member-avatar">${avatarText}</div>
+                    <div class="member-info">
+                        <div class="member-name">${member.username}</div>
+                    </div>
+                    <div class="score-wrap">
+                        <div class="score-value ${scoreClass}">${scoreText}</div>
+                    </div>
+                </div>
+            `;
+    }
+
+    // 新增：渲染结算列表
+    function renderSettlementList() {
+        settlementList.innerHTML = '';
+
+        // 无结算数据时显示空提示
+        if (!roomSummary || roomSummary.length === 0) {
+            settlementList.innerHTML = `
+                    <div class="empty-settlement">
+                        暂无结算信息
+                    </div>
+                `;
+            return;
+        }
+
+        // 渲染结算项
+        roomSummary.forEach(item => {
+            const fromAvatar = item.from_user.substring(0, 1);
+            const toAvatar = item.to_user.substring(0, 1);
+
+            const settlementItem = document.createElement('div');
+            settlementItem.className = 'settlement-item';
+            settlementItem.innerHTML = `
+                    <div class="settlement-user-group">
+                        <div class="settlement-avatar">${fromAvatar}</div>
+                        <div class="member-info">
+                            <div class="member-name">${item.from_user}</div>
+                        </div>
+                    </div>
+                    <div class="settlement-arrow">→</div>
+                    <div class="settlement-user-group">
+                        <div class="settlement-avatar">${toAvatar}</div>
+                        <div class="member-info">
+                            <div class="member-name">${item.to_user}</div>
+                        </div>
+                    </div>
+                    <div class="settlement-score">${item.score}</div>
+                `;
+            settlementList.appendChild(settlementItem);
+        });
+    }
+
+    // 确认分数
+    async function confirmScore() {
+        const score = parseInt(scoreInput.value.trim());
+
+        // 校验
+        if (isNaN(score) || score <= 0) {
+            errorTip.style.display = 'block';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/room/transfer', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    roomId,
+                    targetUserName,
+                    score,
+                })
+            });
+            const data = await res.json();
+            checkLoginOrGotoLoginPage(data)
+            closeModal();
+            await loadRoomMembers(); // 重新加载数据（包含结算）
+        } catch (err) {
+            errorTip.textContent = '提交失败，请重试';
+            errorTip.style.display = 'block';
+            console.error('提交分数失败:', err);
+        }
+    }
+
+    // 初始化
+    initPage();
+</script>
+</body>
+</html>
