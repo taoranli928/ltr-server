@@ -3,15 +3,15 @@ import flask
 from . import token
 
 
-def check_password(username, password):
+def check_password(password):
     today = datetime.now().strftime("%m%d")
-    return password == username + today
+    return password == today
 
 
 def login(login_request: dict):
     username = login_request['username']
     password = login_request['password']
-    if not check_password(username, password):
+    if not check_password(password):
         return {}
 
     token_payload = {
