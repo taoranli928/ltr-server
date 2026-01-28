@@ -1,4 +1,3 @@
-import random
 from datetime import datetime
 from peewee import Model, TextField, DateTimeField, IntegerField
 from .db import db
@@ -131,7 +130,7 @@ def room_detail(room_id: str):
 
     summary = list()
     if len(positive_users) == 0:
-        return summary
+        return detail, summary
 
     while True:
         positive_users.sort(key=lambda x: x[2], reverse=True)
