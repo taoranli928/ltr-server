@@ -17,7 +17,7 @@ def login(login_request: dict):
     token_payload = {
         "username": username
     }
-    jwt_token = token.generate_jwt_token(token_payload, 10)
+    jwt_token = token.generate_jwt_token(token_payload, 240)
     return {
         "username": username,
         "token": jwt_token
