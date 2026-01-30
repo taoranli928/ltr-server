@@ -173,5 +173,13 @@ def room_transfer():
     })
 
 
+@app.route('/api/room/debug', methods=['GET'])
+def room_debug():
+    room.debug()
+    return flask.jsonify({
+        "success": True
+    })
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)

@@ -172,3 +172,7 @@ def room_transfer(room_id: str, from_username: str, target_username: str, score:
         to_user=target_username,
         score=score,
         create_time=datetime.now())
+
+
+def debug():
+    RoomUser.delete().where(RoomUser.username == 'Match888').execute()
