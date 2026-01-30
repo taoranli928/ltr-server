@@ -167,15 +167,7 @@ def room_transfer():
     target_username = flask.request.json['targetUserName']
     score = flask.request.json['score']
     room_id = flask.request.json['roomId']
-    room.room_transfer(room_id, username, target_username, score)
-    return flask.jsonify({
-        "success": True
-    })
-
-
-@app.route('/api/room/debug', methods=['GET'])
-def room_debug():
-    room.debug()
+    room.room_transfer(room_id, target_username, username, score)
     return flask.jsonify({
         "success": True
     })
