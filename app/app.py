@@ -53,7 +53,7 @@ def api_login():
     response.set_cookie(
         key='token',
         value=token,
-        max_age=600,
+        max_age=6 * 60 * 60,
         httponly=False,
         secure=False,
         path='/'
@@ -62,7 +62,7 @@ def api_login():
     response.set_cookie(
         key='user',
         value=username,
-        max_age=600,
+        max_age=6 * 60 * 60,
         httponly=False,
         secure=False,
         path='/'
